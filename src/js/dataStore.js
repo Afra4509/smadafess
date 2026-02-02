@@ -1,10 +1,11 @@
 /**
  * SMADAFESS - Data Store
- * Simple localStorage-based data management (no SQL needed)
+ * Supabase-based data management untuk sinkronisasi lintas device
  */
 
+import { supabase } from './supabaseClient.js';
+
 const STORAGE_KEYS = {
-    MESSAGES: 'smadafess_messages',
     ADMIN: 'smadafess_admin_auth'
 };
 
@@ -17,127 +18,224 @@ const DEFAULT_ADMIN = {
 
 class DataStore {
     constructor() {
-        this.initializeData();
-    }
-
-    initializeData() {
-        // Initialize messages if not exists
-        if (!localStorage.getItem(STORAGE_KEYS.MESSAGES)) {
-            localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify([]));
-        }
+        // No initialization needed for Supabase
     }
 
     // ==========================================
-    // MESSAGES
+    // MESSAGES (Supabase)
     // ==========================================
 
-    getMessages(filters = {}) {
-        let messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
-        
-        // Filter by status
-        if (filters.status) {
-            messages = messages.filter(m => m.status === filters.status);
+    async getMessages(filters = {}) {
+        try {
+            let query = supabase
+                .from('messages')
+                .select('*', { count: 'exact' });
+            
+            // Filter by status
+            if (filters.status) {
+                query = query.eq('status', filters.status);
+            }
+            
+            // Search
+            if (filters.search) {
+                const search = filters.search.toLowerCase();
+                query = query.or(`recipient.ilike.%${search}%,content.ilike.%${search}%,sender_name.ilike.%${search}%`);
+            }
+            
+            // Sort by date (newest first)
+            query = query.order('created_at', { ascending: false });
+            
+            // Pagination
+            const page = filters.page || 1;
+            const perPage = filters.perPage || 10;
+            const start = (page - 1) * perPage;
+            const end = start + perPage - 1;
+            
+            query = query.range(start, end);
+            
+            const { data, error, count } = await query;
+            
+            if (error) {
+                console.error('Error fetching messages:', error);
+                return { items: [], total: 0, page, perPage, totalPages: 0 };
+            }
+            
+            // Transform snake_case to camelCase
+            const items = data.map(this.transformMessage);
+            
+            return {
+                items,
+                total: count || 0,
+                page,
+                perPage,
+                totalPages: Math.ceil((count || 0) / perPage)
+            };
+        } catch (error) {
+            console.error('Error in getMessages:', error);
+            return { items: [], total: 0, page: 1, perPage: 10, totalPages: 0 };
         }
-        
-        // Search
-        if (filters.search) {
-            const search = filters.search.toLowerCase();
-            messages = messages.filter(m => 
-                m.recipient.toLowerCase().includes(search) ||
-                m.content.toLowerCase().includes(search) ||
-                m.senderName.toLowerCase().includes(search)
-            );
-        }
-        
-        // Sort by date (newest first)
-        messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        
-        // Pagination
-        const page = filters.page || 1;
-        const perPage = filters.perPage || 10;
-        const total = messages.length;
-        const start = (page - 1) * perPage;
-        const items = messages.slice(start, start + perPage);
-        
-        return {
-            items,
-            total,
-            page,
-            perPage,
-            totalPages: Math.ceil(total / perPage)
-        };
     }
 
-    getApprovedMessages(filters = {}) {
+    async getApprovedMessages(filters = {}) {
         return this.getMessages({ ...filters, status: 'approved' });
     }
 
-    addMessage(data) {
-        const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
-        
-        const newMessage = {
-            id: this.generateId(),
-            senderName: data.senderName || 'Anonymous',
-            recipient: data.recipient,
-            content: data.content,
-            status: 'pending', // pending, approved, rejected
-            createdAt: new Date().toISOString(),
-            moderatedAt: null,
-            moderationNote: null
-        };
-        
-        messages.unshift(newMessage);
-        localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
-        
-        return newMessage;
-    }
-
-    updateMessageStatus(id, status, note = null) {
-        const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
-        const index = messages.findIndex(m => m.id === id);
-        
-        if (index !== -1) {
-            messages[index].status = status;
-            messages[index].moderatedAt = new Date().toISOString();
-            messages[index].moderationNote = note;
-            localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(messages));
-            return messages[index];
+    async addMessage(data) {
+        try {
+            const newMessage = {
+                sender_name: data.senderName || 'Anonymous',
+                recipient: data.recipient,
+                content: data.content,
+                status: 'pending',
+                created_at: new Date().toISOString(),
+                moderated_at: null,
+                moderation_note: null
+            };
+            
+            const { data: inserted, error } = await supabase
+                .from('messages')
+                .insert([newMessage])
+                .select()
+                .single();
+            
+            if (error) {
+                console.error('Error adding message:', error);
+                return null;
+            }
+            
+            return this.transformMessage(inserted);
+        } catch (error) {
+            console.error('Error in addMessage:', error);
+            return null;
         }
-        
-        return null;
     }
 
-    deleteMessage(id) {
-        const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
-        const filtered = messages.filter(m => m.id !== id);
-        localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(filtered));
-        return true;
+    async updateMessageStatus(id, status, note = null) {
+        try {
+            const { data, error } = await supabase
+                .from('messages')
+                .update({
+                    status: status,
+                    moderated_at: new Date().toISOString(),
+                    moderation_note: note
+                })
+                .eq('id', id)
+                .select()
+                .single();
+            
+            if (error) {
+                console.error('Error updating message:', error);
+                return null;
+            }
+            
+            return this.transformMessage(data);
+        } catch (error) {
+            console.error('Error in updateMessageStatus:', error);
+            return null;
+        }
     }
 
-    getMessage(id) {
-        const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
-        return messages.find(m => m.id === id) || null;
+    async deleteMessage(id) {
+        try {
+            const { error } = await supabase
+                .from('messages')
+                .delete()
+                .eq('id', id);
+            
+            if (error) {
+                console.error('Error deleting message:', error);
+                return false;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('Error in deleteMessage:', error);
+            return false;
+        }
     }
 
-    resetData() {
-        localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify([]));
+    async getMessage(id) {
+        try {
+            const { data, error } = await supabase
+                .from('messages')
+                .select('*')
+                .eq('id', id)
+                .single();
+            
+            if (error) {
+                console.error('Error getting message:', error);
+                return null;
+            }
+            
+            return this.transformMessage(data);
+        } catch (error) {
+            console.error('Error in getMessage:', error);
+            return null;
+        }
     }
 
-    getStats() {
-        const messages = JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]');
-        const today = new Date().toDateString();
-        
+    async resetData() {
+        try {
+            const { error } = await supabase
+                .from('messages')
+                .delete()
+                .neq('id', 0); // Delete all rows
+            
+            if (error) {
+                console.error('Error resetting data:', error);
+                return false;
+            }
+            return true;
+        } catch (error) {
+            console.error('Error in resetData:', error);
+            return false;
+        }
+    }
+
+    async getStats() {
+        try {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            // Get all counts in parallel
+            const [totalResult, pendingResult, approvedResult, rejectedResult, todayResult] = await Promise.all([
+                supabase.from('messages').select('*', { count: 'exact', head: true }),
+                supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+                supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+                supabase.from('messages').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+                supabase.from('messages').select('*', { count: 'exact', head: true }).gte('created_at', today.toISOString())
+            ]);
+            
+            return {
+                total: totalResult.count || 0,
+                pending: pendingResult.count || 0,
+                approved: approvedResult.count || 0,
+                rejected: rejectedResult.count || 0,
+                today: todayResult.count || 0
+            };
+        } catch (error) {
+            console.error('Error in getStats:', error);
+            return { total: 0, pending: 0, approved: 0, rejected: 0, today: 0 };
+        }
+    }
+
+    // Transform database row (snake_case) to JS object (camelCase)
+    transformMessage(row) {
+        if (!row) return null;
         return {
-            total: messages.length,
-            pending: messages.filter(m => m.status === 'pending').length,
-            approved: messages.filter(m => m.status === 'approved').length,
-            rejected: messages.filter(m => m.status === 'rejected').length,
-            today: messages.filter(m => new Date(m.createdAt).toDateString() === today).length
+            id: row.id,
+            senderName: row.sender_name,
+            recipient: row.recipient,
+            content: row.content,
+            status: row.status,
+            createdAt: row.created_at,
+            moderatedAt: row.moderated_at,
+            moderationNote: row.moderation_note
         };
     }
 
     // ==========================================
-    // ADMIN AUTH
+    // ADMIN AUTH (tetap localStorage - tidak perlu sync)
     // ==========================================
 
     adminLogin(username, password) {
@@ -184,28 +282,74 @@ class DataStore {
         return 'token_' + this.generateId() + '_' + this.generateId();
     }
 
-    // Export data (for backup)
-    exportData() {
+    // Export data (for backup) - async now
+    async exportData() {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
         return {
-            messages: JSON.parse(localStorage.getItem(STORAGE_KEYS.MESSAGES) || '[]'),
+            messages: data ? data.map(this.transformMessage) : [],
             exportedAt: new Date().toISOString()
         };
     }
 
-    // Import data (restore from backup)
-    importData(data) {
-        if (data.messages) {
-            localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(data.messages));
+    // Import data (restore from backup) - async now
+    async importData(importedData) {
+        if (importedData.messages && importedData.messages.length > 0) {
+            // Transform camelCase back to snake_case for database
+            const rows = importedData.messages.map(m => ({
+                sender_name: m.senderName,
+                recipient: m.recipient,
+                content: m.content,
+                status: m.status,
+                created_at: m.createdAt,
+                moderated_at: m.moderatedAt,
+                moderation_note: m.moderationNote
+            }));
+            
+            const { error } = await supabase
+                .from('messages')
+                .insert(rows);
+            
+            if (error) {
+                console.error('Error importing data:', error);
+                return false;
+            }
             return true;
         }
         return false;
     }
 
     // Clear all data
-    clearAllData() {
-        localStorage.removeItem(STORAGE_KEYS.MESSAGES);
+    async clearAllData() {
         localStorage.removeItem(STORAGE_KEYS.ADMIN);
-        this.initializeData();
+        await this.resetData();
+    }
+
+    // ==========================================
+    // REALTIME SUBSCRIPTION (bonus feature)
+    // ==========================================
+
+    subscribeToMessages(callback) {
+        const subscription = supabase
+            .channel('messages-changes')
+            .on('postgres_changes', 
+                { event: '*', schema: 'public', table: 'messages' }, 
+                (payload) => {
+                    callback(payload);
+                }
+            )
+            .subscribe();
+        
+        return subscription;
+    }
+
+    unsubscribeFromMessages(subscription) {
+        if (subscription) {
+            supabase.removeChannel(subscription);
+        }
     }
 }
 

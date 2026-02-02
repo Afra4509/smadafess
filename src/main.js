@@ -214,7 +214,7 @@ class SmadafessApp {
     // ==========================================
 
     async loadHomePage(container) {
-        const stats = dataStore.getStats();
+        const stats = await dataStore.getStats();
         container.innerHTML = homePage(stats);
         
         // Animate stats
@@ -263,7 +263,7 @@ class SmadafessApp {
         const loadMoreContainer = document.getElementById('load-more-container');
         
         try {
-            const result = dataStore.getApprovedMessages({
+            const result = await dataStore.getApprovedMessages({
                 page: this.feedData.page,
                 perPage: 9,
                 search: this.feedData.search
@@ -392,11 +392,15 @@ class SmadafessApp {
         
         try {
             // Add message to store
-            dataStore.addMessage({
+            const result = await dataStore.addMessage({
                 senderName,
                 recipient,
                 content: message
             });
+            
+            if (!result) {
+                throw new Error('Failed to add message');
+            }
             
             toast.success('Berhasil!', 'Menfess kamu sedang direview');
             this.loadPage('success');

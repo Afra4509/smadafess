@@ -216,8 +216,8 @@ class AdminApp {
         this.updatePendingBadge();
     }
 
-    updatePendingBadge() {
-        const stats = dataStore.getStats();
+    async updatePendingBadge() {
+        const stats = await dataStore.getStats();
         const badge = document.getElementById('pending-badge');
         if (badge) {
             badge.textContent = stats.pending;
@@ -230,7 +230,7 @@ class AdminApp {
     // ==========================================
 
     async loadDashboard(container) {
-        const stats = dataStore.getStats();
+        const stats = await dataStore.getStats();
         
         container.innerHTML = `
             <div class="stats-grid">
@@ -278,7 +278,7 @@ class AdminApp {
         `;
         
         // Load recent messages
-        const recent = dataStore.getMessages({ perPage: 5 });
+        const recent = await dataStore.getMessages({ perPage: 5 });
         const messagesList = document.getElementById('recent-messages');
         
         if (recent.items.length === 0) {
@@ -334,8 +334,8 @@ class AdminApp {
         this.loadMessagesList();
     }
 
-    loadMessagesList() {
-        const result = dataStore.getMessages({
+    async loadMessagesList() {
+        const result = await dataStore.getMessages({
             page: this.messagesData.page,
             perPage: 10,
             status: this.messagesData.status
@@ -429,32 +429,32 @@ class AdminApp {
         });
     }
 
-    approveMessage(id) {
-        const result = dataStore.updateMessageStatus(id, 'approved');
+    async approveMessage(id) {
+        const result = await dataStore.updateMessageStatus(id, 'approved');
         if (result) {
             toast.success('Berhasil', 'Pesan telah disetujui');
             this.loadSection(this.currentSection);
         }
     }
 
-    rejectMessage(id) {
-        const result = dataStore.updateMessageStatus(id, 'rejected');
+    async rejectMessage(id) {
+        const result = await dataStore.updateMessageStatus(id, 'rejected');
         if (result) {
             toast.success('Berhasil', 'Pesan telah ditolak');
             this.loadSection(this.currentSection);
         }
     }
 
-    deleteMessage(id) {
+    async deleteMessage(id) {
         if (confirm('Yakin ingin menghapus pesan ini?')) {
-            dataStore.deleteMessage(id);
+            await dataStore.deleteMessage(id);
             toast.success('Berhasil', 'Pesan telah dihapus');
             this.loadSection(this.currentSection);
         }
     }
 
-    viewMessage(id) {
-        const message = dataStore.getMessage(id);
+    async viewMessage(id) {
+        const message = await dataStore.getMessage(id);
         if (!message) return;
         
         // Create modal
@@ -618,9 +618,9 @@ class AdminApp {
             </div>
         `;
         
-        document.getElementById('reset-data-btn')?.addEventListener('click', () => {
+        document.getElementById('reset-data-btn')?.addEventListener('click', async () => {
             if (confirm('Yakin ingin menghapus semua data? Tindakan ini tidak dapat dibatalkan.')) {
-                dataStore.resetData();
+                await dataStore.resetData();
                 toast.success('Berhasil', 'Semua data telah direset');
                 this.loadSection('dashboard');
             }
