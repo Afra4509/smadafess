@@ -1,0 +1,148 @@
+// ============================================
+// SMADAFESS Design System - Variables
+// Premium Dark Theme
+// ============================================
+
+// Color Palette
+$gray-50: #fafafa;
+$gray-100: #f4f4f5;
+$gray-200: #e4e4e7;
+$gray-300: #d4d4d8;
+$gray-400: #a1a1aa;
+$gray-500: #71717a;
+$gray-600: #52525b;
+$gray-700: #3f3f46;
+$gray-800: #27272a;
+$gray-900: #18181b;
+$gray-950: #09090b;
+
+// Brand Colors
+$violet-400: #a78bfa;
+$violet-500: #8b5cf6;
+$violet-600: #7c3aed;
+
+$cyan-400: #22d3ee;
+$cyan-500: #06b6d4;
+
+$rose-400: #fb7185;
+$rose-500: #f43f5e;
+
+$emerald-400: #34d399;
+$emerald-500: #10b981;
+
+$amber-400: #fbbf24;
+$amber-500: #f59e0b;
+
+// Semantic Colors
+$primary: $violet-500;
+$primary-hover: $violet-600;
+$primary-light: $violet-400;
+
+$success: $emerald-500;
+$warning: $amber-500;
+$error: $rose-500;
+$info: $cyan-500;
+
+// Background
+$bg-base: #0a0a0f;
+$bg-subtle: #0f0f14;
+$bg-muted: #18181f;
+$bg-elevated: rgba(255, 255, 255, 0.03);
+
+// Text
+$text-primary: #fafafa;
+$text-secondary: #a1a1aa;
+$text-muted: #71717a;
+$text-inverse: #09090b;
+
+// Border
+$border-subtle: rgba(255, 255, 255, 0.06);
+$border-muted: rgba(255, 255, 255, 0.1);
+$border-focus: rgba(139, 92, 246, 0.5);
+
+// Glass Effect
+$glass-bg: rgba(255, 255, 255, 0.02);
+$glass-bg-hover: rgba(255, 255, 255, 0.04);
+$glass-border: rgba(255, 255, 255, 0.08);
+$glass-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+// Shadows
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+$shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+$shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+$shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
+$shadow-glow: 0 0 60px rgba(139, 92, 246, 0.15);
+$shadow-glow-sm: 0 0 30px rgba(139, 92, 246, 0.1);
+
+// Typography
+$font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+$text-xs: 0.75rem;
+$text-sm: 0.875rem;
+$text-base: 1rem;
+$text-lg: 1.125rem;
+$text-xl: 1.25rem;
+$text-2xl: 1.5rem;
+$text-3xl: 2rem;
+$text-4xl: 2.5rem;
+
+$font-normal: 400;
+$font-medium: 500;
+$font-semibold: 600;
+$font-bold: 700;
+
+$leading-tight: 1.25;
+$leading-normal: 1.5;
+$leading-relaxed: 1.625;
+
+// Spacing
+$space-1: 0.25rem;
+$space-2: 0.5rem;
+$space-3: 0.75rem;
+$space-4: 1rem;
+$space-5: 1.25rem;
+$space-6: 1.5rem;
+$space-8: 2rem;
+$space-10: 2.5rem;
+$space-12: 3rem;
+$space-16: 4rem;
+$space-20: 5rem;
+
+// Border Radius
+$radius-sm: 6px;
+$radius-md: 8px;
+$radius-lg: 12px;
+$radius-xl: 16px;
+$radius-2xl: 24px;
+$radius-full: 9999px;
+
+// Transitions
+$ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+$ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+$duration-fast: 150ms;
+$duration-base: 200ms;
+$duration-slow: 300ms;
+$duration-slower: 500ms;
+
+// Z-index
+$z-dropdown: 50;
+$z-sticky: 100;
+$z-fixed: 200;
+$z-overlay: 300;
+$z-modal: 400;
+$z-toast: 500;
+$z-max: 9999;
+
+// Layout
+$header-height: 64px;
+$sidebar-width: 240px;
+$container-max: 1120px;
+$container-sm: 640px;
+$container-md: 768px;
+
+// Breakpoints
+$bp-sm: 640px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+$bp-xl: 1280px;
